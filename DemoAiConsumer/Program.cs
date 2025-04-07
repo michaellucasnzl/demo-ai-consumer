@@ -6,6 +6,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace DemoAiConsumer
 {
@@ -13,7 +16,18 @@ namespace DemoAiConsumer
     {
         static async Task Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: AnsiConsoleTheme.Code)
+                .CreateLogger();
+
             var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog()
                 .ConfigureHostConfiguration(configHost =>
                 {
                     configHost.SetBasePath(AppContext.BaseDirectory);
@@ -119,11 +133,11 @@ namespace DemoAiConsumer
             }
             catch (HttpRequestException ex)
             {
-                Console.WriteLine($"Request Error: {ex.Message}");                
+                logger.LogError($"Request Error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                logger.LogError($"Error: {ex.Message}");
             }
         }
 
